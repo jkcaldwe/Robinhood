@@ -14,8 +14,8 @@ class TraderGui(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        # Call main trader logic
         tradeLogic = auto_trader.TraderApp().main();
-        
         
     def initUI(self):      
 
@@ -33,13 +33,21 @@ class TraderGui(QMainWindow):
         self.setGeometry(300, 300, 290, 150)
         self.setWindowTitle('Event sender')
         self.show()
+
+        timer.timeout.connect(self.timerEvent);
+        timer.start(500);
         
     
     def buttonClicked(self):
         sender = self.sender()
         self.statusBar().showMessage(sender.text() + ' was pressed')
-        logging.debug(sender.text() + ' was pressed');    
-    
+        logging.info(sender.text() + ' was pressed');
+
+    def timerEvent(self):
+        logging.info("Timer emited");    
+
+
+timer = QtCore.QTimer();
 app = QApplication(sys.argv)
 autoTrader = TraderGui()
 sys.exit(app.exec_())

@@ -17,6 +17,7 @@ from yahoo_fin import stock_info as si
 import logging
 #Import QtApp
 from PyQt5.QtWidgets import QApplication
+from PyQt5 import QtCore
 from PyQt5.QtCore import QObject
 
 class TraderApp(QObject):
@@ -40,7 +41,10 @@ class TraderApp(QObject):
         position_quotes = self.populateQuoteData(position_symbols, position_quotes_init);
 
         #Call function to add quote data to position quotes
-        run = True;
+        logging.info ("Before Timer");
+        
+        timer.timeout.connect(self.updateQuoteData)
+        timer.start(500)
         # while (run):
         #   position_quotes = populateQuoteData(position_symbols, position_quotes);
         #   time.sleep(30);
@@ -88,13 +92,17 @@ class TraderApp(QObject):
         my_trader.login(username=username, password=password, qr_code=qr_code);
         return my_trader;
     #----------------------------------------------------------------------------------------------------------------------------
+    def updateQuoteData(self):
+        print ('in');
+        logging.info ("timer");
+    #----------------------------------------------------------------------------------------------------------------------------
     def exitApp(self):
         logging.info ("exiting");
         exit();
 #----------------------------------------------------------------------------------------------------------------------------
 
 #configure logging to print debug messages on the screen
-
+timer = QtCore.QTimer()
 #Start the widget and runs main code.  Eventually hook data into widget through slots
 #if __name__ == '__main__':   
 # app = QApplication(sys.argv)
