@@ -19,6 +19,9 @@ import logging
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore
 from PyQt5.QtCore import QObject
+#support google finance for historical data
+import csv,datetime,requests,time
+import numpy as np
 
 # class TraderApp(QObject):
     # Global position quotes to be used by timer
@@ -40,35 +43,54 @@ def main():
     position_quotes_init = defaultdict(list);
     position_quotes = populateQuoteData(position_symbols, position_quotes_init);
 
-    # while (run):
-    #   position_quotes = populateQuoteData(position_symbols, position_quotes);
-    #   time.sleep(30);
 
 #----------------------------------------------------------------------------------------------------------------------------
 def getCurrentPositions(my_trader):
     #get current bought in postiions
     #Gets the total number of open positions also past positions since many are 0.  This filters based only on positions where there are a quantity of stocks
-    symbols = [];
+    current_positions = defaultdict(list);
     for i in range (len(my_trader.positions()['results'])):
         if (float(my_trader.positions()['results'][i]['quantity']) != 0):
             #Index one of the open positions and get the instrument URL then find the symbol for the position
             response = urlopen(my_trader.positions()['results'][i]['instrument']);
             json_data = json.loads(response.read());
-            symbols.append(json_data['symbol']);
+            current_positions[json_data['symbol']].append(float(my_trader.positions()['results'][i]['quantity']));
     # print ("symbol: " + json_data['symbol'] + " quantity: " + my_trader.positions()['results'][i]['quantity']);
 
-    return symbols;
+    return current_positions;
 #----------------------------------------------------------------------------------------------------------------------------
 def populateQuoteData(position_symbols, position_quotes):
     # create arrays for each position symbol to store values
     for symbol in position_symbols:
-        position_quotes[symbol].append(getQuoteBySymbol(symbol));
-
-    logging.info (position_quotes);
+        if symbol in position_quotes:
+            position_quotes[symbol].append(getQuoteBySymbol(symbol));
+        else:
+            position_quotes[symbol].append(getOpenBySymbol(symbol));
+            position_quotes[symbol].append(getQuoteBySymbol(symbol));
+    # logging.info (position_quotes);
     return position_quotes;
 #----------------------------------------------------------------------------------------------------------------------------
 def getQuoteBySymbol(symbol):
     return (si.get_live_price(symbol));
+#----------------------------------------------------------------------------------------------------------------------------
+def getQuantityBySymbol(my_trader, symbol):
+    return (si.get_live_price(symbol));
+#----------------------------------------------------------------------------------------------------------------------------
+def getOpenBySymbol(symbol):
+    return (si.get_quote_table(symbol, True)['Open']);
+#----------------------------------------------------------------------------------------------------------------------------
+def sellPosition(my_trader, symbol):
+    sell_order = my_trader.place_sell_order(symbol, 1);
+    return (si.get_quote_table(symbol, True)['Open']);
+#----------------------------------------------------------------------------------------------------------------------------
+def buyPosition(my_trader, symbol, quantity):
+    approx_price = getQuoteBySymbol(symbol) * quantity;
+    if (symbol == 'SPY' and approx_price < 10000 ):
+        buy_order = my_trader.place_buy_order(symbol, quantity);
+    elif (symbol != 'SPY' and approx_price < 2000):
+        buy_order = my_trader.place_buy_order(symbol, quantity);
+    logging.info (buy_order);
+    return ("buy position");
 #----------------------------------------------------------------------------------------------------------------------------
 def login():
     #Pull Robinhood login data from text file so not exposed in code
@@ -86,7 +108,7 @@ def login():
     #login to Robinhood using username and password from file
     my_trader.login(username=username, password=password, qr_code=qr_code);
     return my_trader;
-
+#----------------------------------------------------------------------------------------------------------------------------
 def exitApp():
     logging.info ("exiting");
     exit();
