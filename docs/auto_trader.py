@@ -79,6 +79,25 @@ def getQuantityBySymbol(my_trader, symbol):
 def getOpenBySymbol(symbol):
     return (si.get_quote_table(symbol, True)['Open']);
 #----------------------------------------------------------------------------------------------------------------------------
+def calcWeightedAverage(quoteList, window):
+    #take the last items in the quote list as defined the window value
+    #eg. if window value is 5, adjList will be the last 5 values in the quote list
+    adjList = quoteList[-window:];
+    logging.info(adjList);
+    #calculate weight multiplier for linear weighted average
+    weightMultiplier = 0;
+    for i in range (window + 1):
+        weightMultiplier += i;
+    weightMultiplier = (100 / weightMultiplier) / 100;
+    logging.info(weightMultiplier);
+    #use weight multiplier and adjList to calculate weighted average
+    weightedAve = 0;
+    for i in range(len(adjList)):
+        logging.info(adjList[i]);
+        weightedAve += ((i+1)*weightMultiplier*adjList[i]);
+    
+    return (weightedAve);
+#----------------------------------------------------------------------------------------------------------------------------
 def sellPosition(my_trader, symbol):
     sell_order = my_trader.place_sell_order(symbol, 1);
     return (si.get_quote_table(symbol, True)['Open']);

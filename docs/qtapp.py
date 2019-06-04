@@ -60,7 +60,7 @@ class TraderGui(QMainWindow):
         #Create a timer and append current quote data to the position quote list
         self.quoteTimer.timeout.connect(self.func_quoteTimer);
         #Timer will repeat every 2 minutes
-        self.quoteTimer.start(120000);
+        self.quoteTimer.start(30000);
 
         self.positionTimer.timeout.connect(self.func_posSymbolsTimer);
         #Trigger every 15 minutes to update current positions
@@ -72,8 +72,14 @@ class TraderGui(QMainWindow):
         logging.info(sender.text() + ' was pressed');
 
     def func_quoteTimer(self):
+        #Update postion quotes with new data every time timer expires
         self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.position_quotes);
-        logging.info(self.position_quotes);    
+        #Find data for each position and if there is enough to generate a running weighted average, do it and put in weigted average dict
+        for symbol in self.position_quotes:
+            tempQuoteList = self.position_quotes[symbol];
+            logging.info(tempQuoteList);    
+            if (len(tempQuoteList) > 3):
+                logging.info(auto_trader.calcWeightedAverage(tempQuoteList, 3));
 
     def func_posSymbolsTimer(self):
         self.position_symbols = auto_trader.getCurrentPositions(self.my_trader);

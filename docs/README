@@ -1,5 +1,6 @@
 
 Install Robinhood Python script
 Install PyQt python libs
+Install yahoo_fin
 
 pip install is package manager
