@@ -20,10 +20,18 @@ class TraderGui(QMainWindow):
         # Define global variables for the class instance
         self.quoteTimer = QtCore.QTimer();
         self.positionTimer = QtCore.QTimer();
-        self.position_quotes = [];
-        self.position_symbols = [];
+        #Support for control symbols which influence the market
+        self.control_symbols = ["SPY"];
+        #Symbols of the positions I'm currently in with quantities
+        self.position_symbols = defaultdict(list);
+        #Symbols for positions which the app has sold with quantities sold
+        self.sold_symbols = defaultdict(list);
+        #compiled dict will all above symbols.  Stores previous close, open and stock prices every x minutes to be used by the analysis and weighted average
+        self.position_quotes = defaultdict(list);
+        #takes data from position quotes to store weighted linear averages every x minutes as defined by timers
+        self.weighted_averages = defaultdict(list);
+
         # Call main trader logic
-        # tradeLogic = auto_trader.TraderApp().main();
         self.main();
         
     def initUI(self):      
@@ -54,7 +62,7 @@ class TraderGui(QMainWindow):
 
         #Create data array for each symbol in my positions and initialize with opening and current quote
         position_quotes_init = defaultdict(list);
-        self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, position_quotes_init);
+        self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.sold_symbols, self.control_symbols, position_quotes_init);
         logging.info(self.position_quotes);
         
         #Create a timer and append current quote data to the position quote list
@@ -73,13 +81,19 @@ class TraderGui(QMainWindow):
 
     def func_quoteTimer(self):
         #Update postion quotes with new data every time timer expires
-        self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.position_quotes);
+        self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.sold_symbols, self.control_symbols, self.position_quotes);
+        #Define the window size for the moving average
+        window_size = 3
         #Find data for each position and if there is enough to generate a running weighted average, do it and put in weigted average dict
         for symbol in self.position_quotes:
             tempQuoteList = self.position_quotes[symbol];
             logging.info(tempQuoteList);    
-            if (len(tempQuoteList) > 3):
-                logging.info(auto_trader.calcWeightedAverage(tempQuoteList, 3));
+            if (len(tempQuoteList) > (window_size + 1)):
+                #Append returned weighted average for the window size to the weighted averages list
+                self.weighted_averages[symbol].append(auto_trader.calcWeightedAverage(tempQuoteList, window_size));
+        logging.info (self.weighted_averages);
+        #send weighted averages list for buy/sell analysis
+
 
     def func_posSymbolsTimer(self):
         self.position_symbols = auto_trader.getCurrentPositions(self.my_trader);

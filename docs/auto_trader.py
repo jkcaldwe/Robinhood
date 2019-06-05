@@ -59,27 +59,72 @@ def getCurrentPositions(my_trader):
 
     return current_positions;
 #----------------------------------------------------------------------------------------------------------------------------
-def populateQuoteData(position_symbols, position_quotes):
+def populateQuoteData(position_symbols, sold_symbols, control_symbols, position_quotes):  
     # create arrays for each position symbol to store values
+    # position symbols and sold symbols should never have the same symbols
     for symbol in position_symbols:
         if symbol in position_quotes:
             position_quotes[symbol].append(getQuoteBySymbol(symbol));
         else:
+            position_quotes[symbol].append(getCloseBySymbol(symbol));
             position_quotes[symbol].append(getOpenBySymbol(symbol));
             position_quotes[symbol].append(getQuoteBySymbol(symbol));
+    for symbol in sold_symbols:
+        if symbol in position_quotes:
+            position_quotes[symbol].append(getQuoteBySymbol(symbol));
+        else:
+            position_quotes[symbol].append(getCloseBySymbol(symbol));
+            position_quotes[symbol].append(getOpenBySymbol(symbol));
+            position_quotes[symbol].append(getQuoteBySymbol(symbol));
+    # control symbols could have the same symbol as either position or sold and we dont want to append current quote twice
+    for symbol in control_symbols:
+        if symbol not in position_quotes:
+            position_quotes[symbol].append(getCloseBySymbol(symbol));
+            position_quotes[symbol].append(getOpenBySymbol(symbol));
+            position_quotes[symbol].append(getQuoteBySymbol(symbol));
+        else:
+            if symbol not in position_symbols and symbol not in sold_symbols:
+                position_quotes[symbol].append(getQuoteBySymbol(symbol));
+
     # logging.info (position_quotes);
     return position_quotes;
 #----------------------------------------------------------------------------------------------------------------------------
 def getQuoteBySymbol(symbol):
+    #returns the current quote of a given symbol
     return (si.get_live_price(symbol));
 #----------------------------------------------------------------------------------------------------------------------------
 def getQuantityBySymbol(my_trader, symbol):
+    #returns the current quantity in my portfolio
     return (si.get_live_price(symbol));
 #----------------------------------------------------------------------------------------------------------------------------
 def getOpenBySymbol(symbol):
+    #Returns the current days open
     return (si.get_quote_table(symbol, True)['Open']);
 #----------------------------------------------------------------------------------------------------------------------------
+def getCloseBySymbol(symbol):
+    #Returns the previous days close
+    return (si.get_quote_table(symbol, True)['Previous Close']);
+#----------------------------------------------------------------------------------------------------------------------------
 def calcWeightedAverage(quoteList, window):
+    #take the last items in the quote list as defined the window value
+    #eg. if window value is 5, adjList will be the last 5 values in the quote list
+    adjList = quoteList[-window:];
+    # logging.info(adjList);
+    #calculate weight multiplier for linear weighted average
+    weightMultiplier = 0;
+    for i in range (window + 1):
+        weightMultiplier += i;
+    weightMultiplier = (100 / weightMultiplier) / 100;
+    # logging.info(weightMultiplier);
+    #use weight multiplier and adjList to calculate weighted average
+    weightedAve = 0;
+    for i in range(len(adjList)):
+        # logging.info(adjList[i]);
+        weightedAve += ((i+1)*weightMultiplier*adjList[i]);
+    
+    return (weightedAve);
+#----------------------------------------------------------------------------------------------------------------------------
+def analyzeData(averageList, window):
     #take the last items in the quote list as defined the window value
     #eg. if window value is 5, adjList will be the last 5 values in the quote list
     adjList = quoteList[-window:];
