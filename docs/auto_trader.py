@@ -124,37 +124,59 @@ def calcWeightedAverage(quoteList, window):
     
     return (weightedAve);
 #----------------------------------------------------------------------------------------------------------------------------
-def analyzeData(averageList, window):
-    #take the last items in the quote list as defined the window value
-    #eg. if window value is 5, adjList will be the last 5 values in the quote list
-    adjList = quoteList[-window:];
-    logging.info(adjList);
-    #calculate weight multiplier for linear weighted average
-    weightMultiplier = 0;
-    for i in range (window + 1):
-        weightMultiplier += i;
-    weightMultiplier = (100 / weightMultiplier) / 100;
-    logging.info(weightMultiplier);
-    #use weight multiplier and adjList to calculate weighted average
-    weightedAve = 0;
-    for i in range(len(adjList)):
-        logging.info(adjList[i]);
-        weightedAve += ((i+1)*weightMultiplier*adjList[i]);
+def analyzeData(position_symbols, sold_symbols, control_symbols, averageList, quoteList, my_trader):
+    #Develop a score for the control symbols
+    control_multiplier = 0;
+    for symbol in control_symbols:
+        if symbol == "SPY":
+            #Temporary lists of data
+            tempAverage = averageList[symbol];
+            tempQuote = quoteList[symbol];
+            #compare latest average to previous close
+            PercentfromPrevClose = (tempAverage[len(tempAverage) - 1] - tempQuote[0])/tempQuote[0];
+            #weighted averages for last hour, 30% last 10 mins, 30% last 30 mins, 40% last hour.  Based on averages being calculated every 10 minutes
+            lastTen = (tempAverage[len(tempAverage) - 1] - tempAverage[len(tempAverage) - 2])/tempAverage[len(tempAverage) - 2];
+            lastThirty = (tempAverage[len(tempAverage) - 1] - tempAverage[len(tempAverage) - 4])/tempAverage[len(tempAverage) - 4];
+            lastHour = (tempAverage[len(tempAverage) - 1] - tempAverage[len(tempAverage) - 7])/tempAverage[len(tempAverage) - 7];
+            weightedHour = (lastTen*0.3) + (lastThirty*0.3) + (lastHour*0.4);
+            #calculate the control multiplier - using 150 as a base, adjust to modify control for other stocks - 1% increase will result in 1.5 multiplier
+            control_multiplier = ((weightedHour*0.4) + (PercentfromPrevClose*0.6)) * 150;
+    logging.info(control_multiplier);
+
+    #for each stock in sold stocks, determine if we should but back
+    for symbol in position_symbols:
+        #Temporary lists of data
+        tempAverage = averageList[symbol];
+        tempQuote = quoteList[symbol];
     
     return (weightedAve);
 #----------------------------------------------------------------------------------------------------------------------------
-def sellPosition(my_trader, symbol):
-    sell_order = my_trader.place_sell_order(symbol, 1);
-    return (si.get_quote_table(symbol, True)['Open']);
+def sellPosition(my_trader, symbol, quantity):
+    #find stock instrument for buy order
+    stock_instrument = my_trader.instruments(symbol)[0];
+    current_price = getQuoteBySymbol(symbol);
+    #minimum amount I'm willing to take.  Set at 2% lower than current to make sure it sells.
+    limit_price = round(current_price - (current_price * 0.02), 2);
+    logging.info(limit_price);
+    sell_order = my_trader.place_limit_sell_order(stock_instrument["url"], symbol, "GFD", limit_price, quantity);
+    logging.info (sell_order);
 #----------------------------------------------------------------------------------------------------------------------------
 def buyPosition(my_trader, symbol, quantity):
-    approx_price = getQuoteBySymbol(symbol) * quantity;
-    if (symbol == 'SPY' and approx_price < 10000 ):
-        buy_order = my_trader.place_buy_order(symbol, quantity);
-    elif (symbol != 'SPY' and approx_price < 2000):
-        buy_order = my_trader.place_buy_order(symbol, quantity);
+    #find stock instrument for buy order
+    stock_instrument = my_trader.instruments(symbol)[0];
+    #get current price to calculate approximate cost for built in protection and limit price
+    current_price = getQuoteBySymbol(symbol);
+    approx_tot_price = current_price * quantity;
+    #place a limit buy order.  Make the limit 1% above current price.  Should execute immediately.  Rounded to 2 decimal places or it wont work.
+    limit_price = round(current_price * 1.01, 2);
+    logging.info(limit_price);
+    if (symbol == 'SPY' and approx_tot_price < 10000 ):
+        # GFD is good for day
+        buy_order = my_trader.place_limit_buy_order(stock_instrument["url"], symbol, "GFD", limit_price, quantity);
+    elif (symbol != 'SPY' and approx_tot_price < 2000):
+        buy_order = my_trader.place_limit_buy_order(stock_instrument["url"], symbol, "GFD", limit_price, quantity);
     logging.info (buy_order);
-    return ("buy position");
+    # return ("buy position");
 #----------------------------------------------------------------------------------------------------------------------------
 def login():
     #Pull Robinhood login data from text file so not exposed in code

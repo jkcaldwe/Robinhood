@@ -55,24 +55,24 @@ class TraderGui(QMainWindow):
         
         #log in and return trade handle.  'self' defines it as a global across the class
         self.my_trader = auto_trader.login();
+        auto_trader.buyPosition(self.my_trader, "UUUU", 2);
+        # # Get current open positions and quantity of the position
+        # self.position_symbols = auto_trader.getCurrentPositions(self.my_trader);
+        # logging.info(self.position_symbols);
 
-        # Get current open positions and quantity of the position
-        self.position_symbols = auto_trader.getCurrentPositions(self.my_trader);
-        logging.info(self.position_symbols);
-
-        #Create data array for each symbol in my positions and initialize with opening and current quote
-        position_quotes_init = defaultdict(list);
-        self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.sold_symbols, self.control_symbols, position_quotes_init);
-        logging.info(self.position_quotes);
+        # #Create data array for each symbol in my positions and initialize with opening and current quote
+        # position_quotes_init = defaultdict(list);
+        # self.position_quotes = auto_trader.populateQuoteData(self.position_symbols, self.sold_symbols, self.control_symbols, position_quotes_init);
+        # logging.info(self.position_quotes);
         
-        #Create a timer and append current quote data to the position quote list
-        self.quoteTimer.timeout.connect(self.func_quoteTimer);
-        #Timer will repeat every 2 minutes
-        self.quoteTimer.start(30000);
+        # #Create a timer and append current quote data to the position quote list
+        # self.quoteTimer.timeout.connect(self.func_quoteTimer);
+        # #Timer will repeat every 2 minutes
+        # self.quoteTimer.start(30000);
 
-        self.positionTimer.timeout.connect(self.func_posSymbolsTimer);
-        #Trigger every 15 minutes to update current positions
-        self.positionTimer.start(900000);
+        # self.positionTimer.timeout.connect(self.func_posSymbolsTimer);
+        # #Trigger every 15 minutes to update current positions
+        # self.positionTimer.start(900000);
 
     def buttonClicked(self):
         sender = self.sender()
